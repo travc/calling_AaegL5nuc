@@ -1,0 +1,29 @@
+{
+    "__default__" :
+    {
+        "partition"     : "production",
+        "time"          : "00:05:00",
+        "ntasks"        : 1,
+        "cpus-per-task" : 1,
+        "mem"           : "1G",
+        "output"        : "slurm_logs/%j.%x.%N.out",
+        "error"         : "slurm_logs/%j.%x.%N.err",
+        "mail-user"     : "travcollier@gmail.com",
+        "mail-type"     : "FAIL,REQUEUE,TIME_LIMIT_90",
+    },
+
+    "fbregion" :
+    {
+        "cpus-per-task" : 1,
+        "mem"           : "64G",
+        "time"          : "6-00:00:00",
+    },
+
+    "pfilt" :
+    {
+        "cpus-per-task" : 3,
+        "mem"           : "4G",
+        "time"          : "5:00:00",
+    },
+
+}

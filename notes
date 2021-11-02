@@ -1,0 +1,51 @@
+Snakemake based variant calling pipeline using freebayes
+
+Should work on a cluster with slurm if available, but this iteration is being setup and used on a single machine
+fbcall.cluster_config file and slurm specific hooks are not being updated from the previous version which ran on UC Davis Genomecenter cluster
+
+
+
+
+
+
+
+#################################################################################################
+## OLD NOTES ###
+#################################################################################################
+regions taking too much memory
+>16 GB
+000948.1:57150141-58112722
+000970.1:80224881-80760532
+>32GB mem
+000908.1:14997916-15922826 
+
+
+
+
+------
+pconcat step tries to open too many files at once
+----
+
+run each chrom by hand
+bcftools concat --allow-overlaps --rm-dups all -O z -o 'pconcat.1.vcf.gz' vcfs/pfilt-*.1\:*.vcf.gz
+bcftools concat --allow-overlaps --rm-dups all -O z -o 'pconcat.2.vcf.gz' vcfs/pfilt-*.2\:*.vcf.gz
+bcftools concat --allow-overlaps --rm-dups all -O z -o 'pconcat.3.vcf.gz' vcfs/pfilt-*.3\:*.vcf.gz
+
+ls vcfs/pfilt-00*.vcf.gz | egrep -v -e '.1:' -e '.2:' -e '.3:' > non-chrom-regions
+bcftools concat --allow-overlaps --rm-dups all -O z -o 'pconcat.other.vcf.gz' -f non-chrom-regions
+
+putting the chroms together (don't need to worry about overlaps)
+bcftools concat -O z -o pconcat.all.vcf.gz pconcat.1.vcf.gz pconcat.2.vcf.gz pconcat.3.vcf.gz pconcat.other.vcf.gz
+
+OR
+attempting to fix by setting `ulimit -n 16384`
+...
+still running into some problem; guessing ARG_MAX
+@TCC TODO: try using `bcftools concat -f FILE` instead.
+@TCC TODO: also try using --naive flag to speed it up.
+@TCC TODO: `ulimit -n 16384` works, but not sure how to incorporate writing a file list into snakemake
+
+
+
+## Thu Mar 12 16:40:29 PDT 2020
+Rerunning from scratch with update pfilt step
