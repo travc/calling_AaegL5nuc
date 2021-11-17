@@ -4,9 +4,9 @@ import glob
 import itertools
 import subprocess
 
-BAM_LIST_FILE = 'bams.txt'
-REFERENCE = '/share/lanzarolab/archive/reference/AaegL5.fa'
-OUTDIR = 'vcfs'
+BAM_LIST_FILE = 'DM-EX-04.bams'
+REFERENCE = '/data2/data/archive/reference/AaegL5.fa'
+OUTDIR = 'DM-EX-04_vcfs'
 
 # Settings
 PLOIDY = 2
@@ -18,7 +18,7 @@ USE_BEST_N_ALLELES = 32 # limit number of alleles to consider; 0 for all.  @TCC 
 # will be created automatically if listed in rule all
 REGIONS_FILE = 'regions_list.tsv' 
 
-NICE_LEVEL = 0
+NICE_LEVEL = 9
 
 DATE_CMD = "/bin/date -Is"
 TIME_EXEC = "util/time"
@@ -103,8 +103,10 @@ rule fbregion:
         "(( "+DATE_CMD+" > '{log}' &&"
         " echo 'region index: {wildcards.n}' &&"
         " echo 'region: {wildcards.region}' &&"
-        " module load freebayes && which freebayes && freebayes --version && "
-        " module load htslib && which bgzip && bgzip --version && "
+#        " module load freebayes &&"
+        " which freebayes && freebayes --version && "
+#        " module load htslib &&"
+        " which bgzip && bgzip --version && "
         " nice -"+str(NICE_LEVEL)+" "+TIME_EXEC+" -v bash -c \""
         " freebayes"
         " --region {wildcards.region}"
@@ -144,11 +146,12 @@ rule pfilt:
         "(( "+DATE_CMD+" > '{log}' &&"
         " echo 'region index: {wildcards.n}' &&"
         " echo 'region: {wildcards.region}' &&"
-        " module load bcftools && which bcftools && bcftools --version &&"
-        #" module load vt && which vt && vt --version &&"
-        #" echo '"+VT_EXEC+"' && "+VT_EXEC+" --version &&"
-        " module load vcflib && which vcffilter &&"
-        " module load htslib && which bgzip && bgzip --version &&"
+#        " module load bcftools &&"
+        " which bcftools && bcftools --version &&"
+#        " module load vcflib &&"
+        " which vcffilter &&"
+#        " module load htslib &&"
+        " which bgzip && bgzip --version &&"
         " nice -"+str(NICE_LEVEL)+" "+TIME_EXEC+" -v bash -c \""
         " bcftools view --trim-alt-alleles --exclude-uncalled -O v '{input.fbregion_vcf}'"
         " |"
@@ -178,7 +181,8 @@ rule index_vcf:
         "{fn}.index_vcf.log"
     shell:
         "(( "+DATE_CMD+" > '{log}' &&"
-        " module load bcftools && which bcftools && bcftools --version &&"
+#        " module load bcftools &&"
+        " which bcftools && bcftools --version &&"
         " nice -"+str(NICE_LEVEL)+" "+TIME_EXEC+" -v bash -c \""
         " bcftools index --tbi --force '{input.vcf}'"
         " \" ) >> '{log}' 2>&1 ) && [[ -s '{log}' ]]"
@@ -194,7 +198,8 @@ rule pconcat:
         "pconcat.log"
     shell:
         "(( "+DATE_CMD+" > '{log}' &&"
-        " module load bcftools && which bcftools && bcftools --version &&"
+#        " module load bcftools &&"
+        " which bcftools && bcftools --version &&"
         " nice -"+str(NICE_LEVEL)+" "+TIME_EXEC+" -v bash -c \""
         " ulimit -n 16384 &&"
         " "+REGIONS_LIST_TO_VCFS_LIST_EXEC+" "+OUTDIR+" &&"
@@ -215,7 +220,7 @@ rule vcf_to_zarr:
     shell:
         "(( "+DATE_CMD+" > '{log}' &&"
         " set +eu &&"
-        " module load anaconda3 && source `which activate` /share/lanzarolab/opt/conda/vgl/ &&"
+#        " module load anaconda3 && source `which activate` /share/lanzarolab/opt/conda/vgl/ &&"
         " set -eu &&"
         " nice -"+str(NICE_LEVEL)+" "+TIME_EXEC+" -v bash -c \""
         " "+VCF_TO_ZARR_EXEC+" '{input.vcf}' &&"
