@@ -1,0 +1,87 @@
+import sys
+import os
+import glob
+import itertools
+import subprocess
+
+BASEDIR = '/data2/data/bams/AaegL5nuc/samples'
+
+#SAMPLES = [ '0320-GC-GLTP-004' ]
+
+#SAMPLES = [ 'Ae18DVCD094-HT',
+#            'Ae20DAVI002',
+#            'Ae20DAVI003',
+#            'Ae20FMYE002',
+#            ]
+
+# Getting SAMPLES from a meta tsv file
+#SAMPLES = set([line.split('\t')[0].strip('\n') for i,line in enumerate(open('/share/lanzarolab/seq/trim/Ae_meta_trimmed/YL-Aaeg-02.tsv')) if i>0])
+
+# All samples in BASEDIR
+SAMPLES = [ os.path.split(x)[1] for x in glob.glob(os.path.join(BASEDIR,"*")) ]
+
+
+WGS_REGIONS = [ '1', '2', '3', 'MT' ]
+BAMFILENAME = 'nuc_merged_markdup.bam'
+
+NICE_LEVEL = 0
+
+DATE_CMD = "/bin/date -Is"
+TIME_EXEC = "/usr/bin/time"
+QUALIMAP_EXEC = "qualimap"
+MAPSTATS_FROM_QUALIMAP_EXEC = "/data/seq_v2/AaegL5nuc/scripts/mapstats_from_qualimap.py"
+
+# Create a list of all the run directories
+ALL_RUN_DIRS = list(itertools.chain.from_iterable(
+            [ glob.glob(os.path.join(BASEDIR, sample, "run_*")) for sample in SAMPLES ]
+            ))
+
+localrules: all, mapstats
+
+rule all:
+    input:
+        "mapstats.tsv",
+        expand(BASEDIR+"/{sample}/qualimap/qualimapReport.html", sample=SAMPLES),
+        expand(BASEDIR+"/{sample}/qualimap/genome_results.txt", sample=SAMPLES),
+
+
+rule mapstats:
+    input:
+        expand(BASEDIR+"/{sample}/qualimap/qualimapReport.html", sample=SAMPLES),
+        exe=MAPSTATS_FROM_QUALIMAP_EXEC
+    output:
+        out="mapstats.tsv"
+    shell:
+        "{input.exe}"+
+        " --contigs '"+",".join(WGS_REGIONS)+"' "+
+        " ".join(["'"+BASEDIR+"/"+x+"/'" for x in SAMPLES])+
+        " > {output.out} 2> mapstats.log"
+
+
+rule qualimap:
+    params:
+        outdir=BASEDIR+"/{sample}/qualimap/"
+    input:
+        bam=BASEDIR+"/{sample}/"+BAMFILENAME,
+    output:
+        html=BASEDIR+"/{sample}/qualimap/qualimapReport.html",
+        txt=BASEDIR+"/{sample}/qualimap/genome_results.txt",
+    log:
+        BASEDIR+"/{sample}/qualimap/qualimap.log"
+    threads: 10 
+    shell:
+        "(( "+DATE_CMD+" > '{log}' &&"
+        " which qualimap &&"
+        " nice -"+str(NICE_LEVEL)+" "+TIME_EXEC+" -v bash -c \""
+        " unset DISPLAY &&"
+        " "+QUALIMAP_EXEC+" bamqc"
+        " --java-mem-size=64G"
+        " -nt {threads}"
+        " --paint-chromosome-limits"
+        " --skip-duplicated"
+        " --collect-overlap-pairs"
+        " -bam '{input.bam}'"
+        " -outdir '{params.outdir}'"
+        " \" ) >> '{log}' 2>&1 ) && [[ -s '{log}' ]]"
+
+
